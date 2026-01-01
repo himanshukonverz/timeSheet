@@ -2,6 +2,13 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
+    empId: {
+        type: Number,
+        unique: true,
+        index: true,
+        required : true
+    },
+
     name: {
       type: String,
       required: true,
@@ -19,7 +26,6 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      select: false // prevents password from being returned in queries
     },
 
     role: {

@@ -45,13 +45,13 @@ const taskSchema = new mongoose.Schema(
     },
 
     plannedDuration: {
-      type: Number, // e.g., hours
+      type: Number, // Minutes
       required: true,
       min: 0
     },
 
     actualDuration: {
-      type: Number, // e.g., hours
+      type: Number, // Minutes
       default: 0,
       min: 0
     },
@@ -59,7 +59,23 @@ const taskSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["in_progress", "completed", "cancelled"],
-      default: "in_progress",
+      required : true
+    },
+
+    isDeleted: {
+        type: Boolean,
+        default: false,
+    },
+      
+    deletedAt: {
+        type: Date,
+        default: null
+    },
+    
+    deletedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
     }
   },
   {

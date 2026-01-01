@@ -28,7 +28,7 @@ const projectSchema = new mongoose.Schema(
     contributors: {
       type: [contributorSchema],
       default: []
-    }
+    },
   },
   {
     timestamps: true
