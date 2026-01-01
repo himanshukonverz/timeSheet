@@ -9,16 +9,22 @@ const taskSchema = new mongoose.Schema(
       index: true
     },
 
-    project: {
+    projectId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
       required: true,
       index: true
     },
 
+    taskDate : {
+        type: Date,
+        required: true,
+        index: true
+    },
+
     projectCategory: {
       type: String,
-      enum: ["implementation", "integration", "AMS"],
+      enum: ["implementation", "integration", "AMS", "leave", "week-off"],
       required: true
     },
 
@@ -33,7 +39,9 @@ const taskSchema = new mongoose.Schema(
         "Prod Review",
         "Go Live",
         "Hypercare",
-        "Others"
+        "Others",
+        "leave",
+        "week-off"
       ],
       required: true
     },

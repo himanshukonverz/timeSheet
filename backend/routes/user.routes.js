@@ -1,8 +1,8 @@
 import express from "express"
 import { createUser } from "../controllers/user.js"
-import { isAdmin } from "../middleware/auth.js"
+import { isAuthenticated, isAuthorized } from "../middleware/auth.js"
 const router = express.Router()
 
-router.post("/create", createUser)
+router.post("/create", isAuthenticated, isAuthorized, createUser)
 
 export default router

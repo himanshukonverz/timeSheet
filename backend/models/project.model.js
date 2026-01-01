@@ -22,7 +22,8 @@ const projectSchema = new mongoose.Schema(
     projectName: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
+      unique : true
     },
 
     contributors: {

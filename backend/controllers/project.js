@@ -41,14 +41,16 @@ export const createProject = asyncHandler(
         const {projectName} = req.body;
 
         if (!projectName || projectName.trim() === "") {
-            res.status(400);
             throw new ErrorHandler(400, "Project name is required");
         }
 
         // req.user.id comes from auth middleware
         if (!req.user || !req.user.id) {
-            res.status(401);
             throw new ErrorHandler(403, "Unauthorized: user not found");
+        }
+
+        if(req.user.role !== "admin"){
+            throw new ErrorHandler(403, "Unauthorized: Only Admins can create Projects");
         }
 
         const newProject = await Project.create({
@@ -68,7 +70,8 @@ export const createProject = asyncHandler(
 
 // Add user to a project
 export const addEmployeeInProject = asyncHandler(async (req, res) => {
-    const { projectId, empId, role } = req.body;
+    const { empId, role } = req.body;
+    const {projectId} = req.params;
   
     // 1️⃣ Basic validation
     if (!projectId || !empId || !role) {

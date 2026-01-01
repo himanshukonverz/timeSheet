@@ -6,10 +6,10 @@ import { ErrorHandler } from "../utils/errorHandler.js";
 // create user
 export const createUser = asyncHandler(async (req, res) => {
     // console.log("req body - ", req.body)
-    const { empId, name, email, password, joiningDate, reportsTo } = req.body;
+    const { empId, name, email, password, joiningDate, reportsTo, role } = req.body;
   
     // 1️⃣ Basic required field validation
-    if (!empId, !name || !email || !password || !joiningDate) {
+    if (!empId, !name || !email || !password || !joiningDate || !role) {
       throw new ErrorHandler(400, "Required fields are missing");
     }
   
@@ -39,7 +39,8 @@ export const createUser = asyncHandler(async (req, res) => {
       email,
       password: hashedPassword,
       joiningDate,
-      reportsTo: managerId
+      reportsTo: managerId,
+      role
     });
   
     res.status(201).json({

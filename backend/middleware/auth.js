@@ -23,11 +23,11 @@ export const isAuthenticated = async (req, res, next) => {
   }
 };
 
-export const isAdmin = async (req, res, next) => {
+export const isAuthorized = async (req, res, next) => {
   const user = req.user;
 
-  if (user.role !== 'admin') {
-    res.status(403).json({
+  if (user.role === 'employee') {
+    return res.status(403).json({
       success: false,
       message: 'Access forbidden',
     });

@@ -1,7 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js"
 import Task from "../models/task.model.js"
 import User from "../models/user.model.js"
-import { ErrorHandler } from "../utils/errorHandler";
+import { ErrorHandler } from "../utils/errorHandler.js";
 import Project from "../models/project.model.js";
 
 // Get All task 
@@ -10,7 +10,7 @@ export const getAllTasks = asyncHandler(async (req, res) => {
             isDeleted: false,
     })
       .populate("user", "name email empId")
-      .populate("project", "projectName")
+      .populate("projectId", "projectName")
       .sort({ createdAt: -1 });
   
     res.status(200).json({
@@ -29,19 +29,16 @@ export const getEmployeeTasks = asyncHandler(async (req, res) => {
     // 🔐 Authorization logic
     // -------------------------
     if (req.query.empId) {
-      if (!["admin", "manager"].includes(requester.role)) {
-        throw new ErrorHandler(
-          403,
-          "You are not allowed to view other users' tasks"
-        );
-      }
-  
-      const employee = await User.findOne({ empId: req.query.empId });
-  
-      if (!employee) {
-        throw new ErrorHandler(404, "Employee not found");
-      }
-  
+        const employee = await User.findOne({ empId: req.query.empId });
+
+        if (!employee) {
+            throw new ErrorHandler(404, "Employee not found");
+        }
+
+        if (!["admin", "manager"].includes(requester.role) && employee._id.toString() !== requester.id.toString()) {
+            throw new ErrorHandler(403,"You are not allowed to view other users' tasks");
+        }
+
       targetUserId = employee._id;
     } else {
       targetUserId = requester.id;
@@ -82,7 +79,7 @@ export const getEmployeeTasks = asyncHandler(async (req, res) => {
           $lte: endDate
         }
     })
-      .populate("project", "projectName")
+      .populate("projectId", "projectName")
       .sort({ createdAt: -1 });
   
     res.status(200).json({
@@ -94,78 +91,111 @@ export const getEmployeeTasks = asyncHandler(async (req, res) => {
       count: tasks.length,
       data: tasks
     });
-  });
+});
 
 // create a task
 export const createTask = asyncHandler(async (req, res) => {
-  const {
-    projectId,
-    projectCategory,
-    projectStage,
-    taskDescription,
-    plannedDuration,
-    actualDuration,
-    status
-  } = req.body;
-
-  // -------------------------
-  // 1️⃣ Validate required fields
-  // -------------------------
-  if (
-    !projectId ||
-    !projectCategory ||
-    !projectStage ||
-    !taskDescription ||
-    plannedDuration === undefined ||
-    !status
-  ) {
-    throw new ErrorHandler(400, "All required fields must be provided");
-  }
-
-  // -------------------------
-  // 2️⃣ Validate project exists
-  // -------------------------
-  const project = await Project.findById(projectId);
-
-  if (!project) {
-    throw new ErrorHandler(404, "Project not found");
-  }
-
-  // -------------------------
-  // 3️⃣ Check if user is part of the project
-  // -------------------------
-  const isContributor = project.contributors.some(
-    (contributor) =>
-      contributor.user.toString() === req.user.id
-  );
-
-  if (!isContributor) {
-    throw new ErrorHandler(
-      403,
-      "You are not a contributor of this project"
+    const {
+      projectName,
+      projectCategory,
+      projectStage,
+      taskDescription,
+      plannedDuration,
+      actualDuration,
+      status,
+      taskDate
+    } = req.body;
+  
+    // -------------------------
+    // 1️⃣ Validate required fields
+    // -------------------------
+    if (
+      !projectName ||
+      !projectCategory ||
+      !projectStage ||
+      !taskDescription ||
+      plannedDuration === undefined ||
+      !status ||
+      !taskDate
+    ) {
+      throw new ErrorHandler(400, "All required fields must be provided");
+    }
+  
+    // -------------------------
+    // 2️⃣ Validate taskDate format
+    // -------------------------
+    const parsedTaskDate = new Date(taskDate);
+  
+    if (isNaN(parsedTaskDate.getTime())) {
+      throw new ErrorHandler(
+        400,
+        "Invalid taskDate format. Use YYYY-MM-DD"
+      );
+    }
+  
+    // Normalize date (remove time)
+    parsedTaskDate.setHours(0, 0, 0, 0);
+  
+    // -------------------------
+    // 3️⃣ Enforce 15-day window (today included)
+    // -------------------------
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+  
+    const past15Days = new Date(today);
+    past15Days.setDate(today.getDate() - 14);
+  
+    if (parsedTaskDate < past15Days || parsedTaskDate > today) {
+      throw new ErrorHandler(
+        400,
+        "Task date must be within the last 15 days (today included)"
+      );
+    }
+  
+    // -------------------------
+    // 4️⃣ Validate project exists
+    // -------------------------
+    const project = await Project.findOne({ projectName });
+  
+    if (!project) {
+      throw new ErrorHandler(404, "Project not found");
+    }
+  
+    // -------------------------
+    // 5️⃣ Check if user is part of the project
+    // -------------------------
+    const isContributor = project.contributors.some(
+      (contributor) => contributor.user.toString() === req.user.id
     );
-  }
-
-  // -------------------------
-  // 4️⃣ Create task
-  // -------------------------
-  const task = await Task.create({
-    user: req.user.id,
-    project: projectId,
-    projectCategory,
-    projectStage,
-    taskDescription: taskDescription.trim(),
-    plannedDuration,
-    actualDuration: actualDuration || 0,
-    status
+  
+    if (!isContributor) {
+      throw new ErrorHandler(
+        403,
+        "You are not a contributor of this project"
+      );
+    }
+  
+    // -------------------------
+    // 6️⃣ Create task
+    // -------------------------
+    const task = await Task.create({
+      user: req.user.id,
+      projectId: project._id,
+      taskDate: parsedTaskDate,
+      projectCategory,
+      projectStage,
+      taskDescription: taskDescription.trim(),
+      plannedDuration,
+      actualDuration: actualDuration || 0,
+      status
+    });
+  
+    res.status(201).json({
+      success: true,
+      message: "Task created successfully",
+      data: task
+    });
   });
-
-  res.status(201).json({
-    success: true,
-    message: "Task created successfully",
-    data: task
-  });
-});
 
 // update a task
 export const updateTasks = asyncHandler(async (req, res) => {
