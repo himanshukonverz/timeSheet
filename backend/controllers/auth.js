@@ -69,3 +69,17 @@ export const logout = asyncHandler(async (req, res) => {
       message: "Logged out successfully"
     });
   });
+
+
+// Fetch Current User
+export const getCurrentLoggedInUser = asyncHandler(
+    async (req, res) => {
+        if(!req.user){
+            throw new ErrorHandler(404, 'Please Login First');
+        }
+
+        return res.json({
+            user : req.user
+        })
+    }
+)

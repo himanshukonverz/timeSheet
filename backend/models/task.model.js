@@ -28,6 +28,11 @@ const taskSchema = new mongoose.Schema(
       required: true
     },
 
+    module : {
+        type : String,
+        required : true
+    },
+
     projectStage: {
       type: String,
       enum: [
