@@ -15,18 +15,19 @@ import taskRoutes from "./routes/task.routes.js"
 const app = express()
 const PORT = process.env.PORT || 3000
 
-const allowedOrigins = ["http://localhost:5173", "https://kognisight.vercel.app/api"]
+const allowedOrigins = ["http://localhost:5173", "https://kognisight.vercel.app"]
 
 const corsOptions = {
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true)
-      } else {
-        callback(new Error('Not allowed by CORS'))
-      }
-    },
-    credentials: true,
-}
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false); // <-- don’t throw, just reject
+    }
+  },
+  credentials: true, // if you need cookies
+};
 
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
