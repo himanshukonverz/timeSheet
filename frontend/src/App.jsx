@@ -3,11 +3,13 @@ import { fetchCurrentLoggedInUser } from './api/fetchCurrentUser'
 import { useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 
 function App() {
 
   const {setUser, setLoading} = useAuth()
+  const location = useLocation()
+  const isLoginPage = location.pathname === '/login'
 
   useEffect(() => {
     fetchCurrentLoggedInUser(setUser, setLoading)
@@ -15,7 +17,7 @@ function App() {
 
   return (
     <div className='min-h-screen flex flex-col'>
-      <Navbar />
+      {!isLoginPage && <Navbar />}
       <main className='grow'>
         <Outlet />
       </main>

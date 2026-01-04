@@ -9,6 +9,16 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Timesheet from "./pages/Timesheet";
 
+import { ModuleRegistry } from "ag-grid-community";
+import { AllCommunityModule } from "ag-grid-community";
+import ViewTimesheet from "./components/ViewTimesheet";
+import FillTimesheet from "./components/FillTimesheet";
+import Projects from "./pages/Projects";
+import AddEmployee from "./pages/AddEmployee";
+import AddProject from "./pages/AddProject";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <AuthProvider>
@@ -23,11 +33,69 @@ createRoot(document.getElementById("root")).render(
               </ProtectedRoute>
             }
           />
+          {/* Employee */}
           <Route 
-            path="timesheet"
+            path="view-timesheet"
             element={
               <ProtectedRoute>
-                <Timesheet />
+                <ViewTimesheet />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Employee + Manager */}
+          <Route 
+            path="fill-timesheet"
+            element={
+              <ProtectedRoute>
+                <FillTimesheet />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Manager */}
+          <Route 
+            path="reportees-timesheet"
+            element={
+              <ProtectedRoute>
+                <ViewTimesheet />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin */}
+          <Route 
+            path="employee-timesheet"
+            element={
+              <ProtectedRoute>
+                <ViewTimesheet />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route 
+            path="add-employee"
+            element={
+              <ProtectedRoute>
+                <AddEmployee />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route 
+            path="projects"
+            element={
+              <ProtectedRoute>
+                <Projects />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route 
+            path="add-new-project"
+            element={
+              <ProtectedRoute>
+                <AddProject />
               </ProtectedRoute>
             }
           />

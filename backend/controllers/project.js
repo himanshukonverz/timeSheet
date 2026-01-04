@@ -70,11 +70,11 @@ export const createProject = asyncHandler(
 
 // Add user to a project
 export const addEmployeeInProject = asyncHandler(async (req, res) => {
-    const { empId, role } = req.body;
+    const { empId, projectRole, projectModules, hasEditAccess } = req.body;
     const {projectId} = req.params;
   
     // 1️⃣ Basic validation
-    if (!projectId || !empId || !role) {
+    if (!projectId || !empId || !projectRole || !projectModules) {
       throw new ErrorHandler(400, "Invalid Fields");
     }
   
@@ -82,7 +82,7 @@ export const addEmployeeInProject = asyncHandler(async (req, res) => {
     const user = await User.findOne({ empId });
   
     if (!user) {
-      throw new ErrorHandler(404, "Employee with given empID does not exist");
+      throw new ErrorHandler(404, "Employee with given Employee ID does not exist");
     }
 
     // 3️⃣ Find the project
@@ -104,7 +104,9 @@ export const addEmployeeInProject = asyncHandler(async (req, res) => {
     // 5️⃣ Add employee to contributors
     project.contributors.push({
       user: user._id,
-      role
+      projectRole,
+      projectModules,
+      hasEditAccess
     });
   
     await project.save();

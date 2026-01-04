@@ -28,18 +28,19 @@ const Login = () => {
   };
 
   return (
-    <div className="mt-10 flex flex-col px-[5%] pt-20 bg-[url('https://res.cloudinary.com/dr9ijlk4w/image/upload/v1754267050/bg-dots_rzzvhj.svg')] bg-center bg-repeat-x">
-      <div className="flex justify-center w-full items-center">
+    <div className="flex flex-col px-[5%] bg-[url('https://res.cloudinary.com/dr9ijlk4w/image/upload/v1754267050/bg-dots_rzzvhj.svg')] bg-center bg-repeat-x">
+      <div className="flex w-full items-center">
         {/* Card */}
-        <div className="hidden md:flex justify-start w-3/4">
+        <div className="hidden md:flex md:flex-col justify-start w-3/4">
+          <img src='https://res.cloudinary.com/dr9ijlk4w/image/upload/v1767516808/Kognisight_dzt5kv.png' className="w-65 mt-2" alt="" />
           <img
-            src="/login-banner.jpg"
-            alt="cola-banner"
-            className="w-full rounded-lg"
+            src="https://res.cloudinary.com/dr9ijlk4w/image/upload/v1767516808/login-img_wmr6qi.png"
+            alt="banner"
+            className="w-[75%] rounded-lg"
           />
         </div>
         <form
-          className="relative -left-1/8 w-full md:w-[40%] px-10 flex flex-col items-center"
+          className="relative w-full md:w-[40%] px-10 flex flex-col items-center"
           onSubmit={handleLogin}
         >
           <div className="bg-white shadow-2xl self-end rounded-2xl p-8 space-y-6 w-full">
@@ -78,7 +79,8 @@ const Login = () => {
             {/* Login Button */}
             <button
               type="submit"
-              className="h-12 mt-4 w-full rounded-lg border border-black border-b-5 hover:border-b hover:translate-y-0.5 transition duration-100 cursor-pointer "
+              className={`h-12 mt-4 w-full rounded-lg border border-black border-b-5 transition duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+              disabled={email.length === 0 || password.length === 0}
             >
               Sign In
             </button>
