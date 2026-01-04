@@ -30,7 +30,7 @@ const corsOptions = {
 
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
-app.use(cors(corsOptions))
+app.use(cors())
 // app.use(cors())
 app.use(cookieParser())
 
