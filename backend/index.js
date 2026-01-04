@@ -15,7 +15,7 @@ import taskRoutes from "./routes/task.routes.js"
 const app = express()
 const PORT = process.env.PORT || 3000
 
-const allowedOrigins = ["http://localhost:5173"]
+const allowedOrigins = ["http://localhost:5173", "https://time-sheet-puwe.vercel.app"]
 
 const corsOptions = {
     origin: (origin, callback) => {
