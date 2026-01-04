@@ -49,7 +49,6 @@ const projectSchema = new mongoose.Schema(
 
     startDate : {
       type: Date,
-      
       default : null
     },
 

@@ -36,6 +36,7 @@ function Navbar() {
           { path: '/fill-timesheet', label: 'Fill Timesheet' },
           { path: '/view-timesheet', label: 'View Timesheet' },
           { path: '/projects', label: 'Projects' },
+          { path: '/profile', label: 'My Profile' },
         ]
       
       case 'manager':
@@ -45,6 +46,7 @@ function Navbar() {
           { path: '/fill-timesheet', label: 'Fill Timesheet' },
           { path: '/add-employee', label: 'Add Employee' },
           { path: '/projects', label: 'Projects' },
+          { path: '/profile', label: 'My Profile' },
         ]
         
         case 'admin':
@@ -53,6 +55,7 @@ function Navbar() {
             { path: '/employee-timesheet', label: 'Employee Timesheet' },
             { path: '/add-employee', label: 'Add Employee' },
             { path: '/projects', label: 'Projects' },
+            { path: '/profile', label: 'My Profile' },
         ]
       
       default:

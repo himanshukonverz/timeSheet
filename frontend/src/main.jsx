@@ -16,6 +16,7 @@ import FillTimesheet from "./components/FillTimesheet";
 import Projects from "./pages/Projects";
 import AddEmployee from "./pages/AddEmployee";
 import AddProject from "./pages/AddProject";
+import Profile from "./pages/MyProfile";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -96,6 +97,15 @@ createRoot(document.getElementById("root")).render(
             element={
               <ProtectedRoute>
                 <AddProject />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route 
+            path="profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

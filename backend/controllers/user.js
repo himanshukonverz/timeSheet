@@ -70,3 +70,43 @@ export const fetchManagersAndAdmin = asyncHandler(async (req, res) => {
     users,
   });
 });
+
+export const getUserProfileData = asyncHandler(async (req, res) => {
+  const { id } = req.user;
+  // console.log("req user - ", req.user)
+
+  const user = await User.findById(id)
+    .select("name email joiningDate reportsTo empId")
+    .populate({
+      path: "reportsTo",
+      select: "name",
+    });
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  const profilePicMap = {
+    1001: "https://res.cloudinary.com/dr9ijlk4w/image/upload/v1767541807/8_orgid_ba899eaa-e7c4-485e-9860-8ecd15c416e5_udlksg.jpg",
+    1002: "https://res.cloudinary.com/dr9ijlk4w/image/upload/v1767541789/8_orgid_daee4f0b-004f-49a7-8af3-309ebbb1a1e6_k1vber.jpg",
+    1003: "https://res.cloudinary.com/dr9ijlk4w/image/upload/v1767541642/8_orgid_a165ca98-52e0-4a8a-b736-77c3667e5692_qlead9.jpg",
+    1004: "https://res.cloudinary.com/dr9ijlk4w/image/upload/v1767540995/Image_t8wvcd.jpg",
+  };
+
+  const DEFAULT_PROFILE_PIC =
+  "https://res.cloudinary.com/dr9ijlk4w/image/upload/v1767542076/icon-7797704_1280_vlnhqv.png";
+
+  const profilePic = (empId) => {
+    return profilePicMap[empId] || DEFAULT_PROFILE_PIC;
+  }  
+
+  res.status(200).json({
+    name: user.name,
+    empId : user.empId,
+    email: user.email,
+    joiningDate: user.joiningDate,
+    reportsTo: user.reportsTo ? user.reportsTo.name : null,
+    profilePic : profilePic(user.empId)
+    });
+});
