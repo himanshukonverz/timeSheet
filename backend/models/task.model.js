@@ -24,13 +24,8 @@ const taskSchema = new mongoose.Schema(
 
     projectCategory: {
       type: String,
-      enum: ["implementation", "integration", "AMS", "leave", "week-off"],
+      enum: ["implementation", "integration", "AMS", "leave", "week-off", "internal meeting", "administrative", "business development"],
       required: true
-    },
-
-    module : {
-        type : String,
-        required : true
     },
 
     projectStage: {
@@ -45,7 +40,8 @@ const taskSchema = new mongoose.Schema(
         "Go Live",
         "Hypercare",
         "Others",
-        "leave",
+        "half-day-leave",
+        "full-day-leave",
         "week-off"
       ],
       required: true

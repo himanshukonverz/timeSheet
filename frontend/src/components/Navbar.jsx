@@ -35,17 +35,6 @@ function Navbar() {
           { path: '/', label: 'Analytics' },
           { path: '/fill-timesheet', label: 'Fill Timesheet' },
           { path: '/view-timesheet', label: 'View Timesheet' },
-          { path: '/projects', label: 'Projects' },
-          { path: '/profile', label: 'My Profile' },
-        ]
-      
-      case 'manager':
-        return [
-          { path: '/', label: 'Analytics' },
-          { path: '/reportees-timesheet', label: "View Timesheet" },
-          { path: '/fill-timesheet', label: 'Fill Timesheet' },
-          { path: '/add-employee', label: 'Add Employee' },
-          { path: '/projects', label: 'Projects' },
           { path: '/profile', label: 'My Profile' },
         ]
         

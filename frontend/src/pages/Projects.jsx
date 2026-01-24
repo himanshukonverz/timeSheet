@@ -2,70 +2,30 @@ import React, { useMemo, useRef, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { themeQuartz } from "ag-grid-community";
 import { useNavigate } from "react-router-dom";
-import { Pencil, UserPlus, Check } from "lucide-react";
-import AnalyticsCard from "../components/AnalyticsCard";
+import { Pencil, Check } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import AddContributorsModal from "@/components/AddContributorModal";
 
 /* ---------------- Dummy Data ---------------- */
 
-const projects = [
+const initialProjects = [
   {
     _id: "1",
     projectName: "Project Alpha",
-    startDate: "2025-10-01",
-    goLiveDate: "2026-01-15",
-    status: "in-progress",
-    contributors: [
-      {
-        user: { _id: "u1", name: "John Doe" },
-        projectRole: "Engagement Manager",
-        hasEditAccess: true,
-      },
-    ],
   },
   {
     _id: "2",
     projectName: "Project Beta",
-    startDate: "2025-08-01",
-    goLiveDate: "2025-12-01",
-    status: "completed",
-    contributors: [],
   },
 ];
-
-const STATUS_OPTIONS = ["upcoming", "in-progress", "completed"];
 
 function Projects() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const gridRef = useRef(null);
+
+  const [projects, setProjects] = useState(initialProjects);
   const [editingRowId, setEditingRowId] = useState(null);
-
-  const [showContributorModal, setShowContributorModal] = useState(false);
-  const [activeProjectId, setActiveProjectId] = useState(null);
-
-  /* ---------------- Permissions ---------------- */
-
-  const canEditProject = (project) => {
-    if (user.role === "admin") return true;
-
-    return project.contributors.some(
-      (c) => c.user._id === user._id && c.hasEditAccess
-    );
-  };
-
-  /* ---------------- Analytics ---------------- */
-
-  const analytics = useMemo(
-    () => ({
-      completed: projects.filter((p) => p.status === "completed").length,
-      upcoming: projects.filter((p) => p.status === "upcoming").length,
-      inProgress: projects.filter((p) => p.status === "in-progress").length,
-    }),
-    []
-  );
 
   /* ---------------- Columns ---------------- */
 
@@ -74,61 +34,30 @@ function Projects() {
       {
         headerName: "Project Name",
         field: "projectName",
-        flex: 1.5,
+        flex: 2,
+        editable: (params) =>
+          params.context.editingRowId === params.data._id,
       },
 
       {
-        headerName: "Start Date",
-        field: "startDate",
-        flex: 1,
-        editable: (params) => params.context.editingRowId === params.data._id,
-        cellEditor: "agDateCellEditor",
-        valueFormatter: (p) =>
-          p.value ? new Date(p.value).toLocaleDateString() : "-",
-      },
-
-      {
-        headerName: "Go Live Date",
-        field: "goLiveDate",
-        flex: 1,
-        editable: (params) => params.context.editingRowId === params.data._id,
-        cellEditor: "agDateCellEditor",
-        valueFormatter: (p) =>
-          p.value ? new Date(p.value).toLocaleDateString() : "-",
-      },
-
-      {
-        headerName: "Status",
-        field: "status",
-        flex: 1,
-        editable: (params) => params.context.editingRowId === params.data._id,
-        cellEditor: "agSelectCellEditor",
-        cellEditorParams: {
-          values: STATUS_OPTIONS,
-        },
-      },
-
-      {
-        headerName: "Actions",
+        headerName: "Edit",
         flex: 1,
         cellRenderer: (params) => {
-          const editable = canEditProject(params.data);
-          const isEditing = params.context.editingRowId === params.data._id;
+          const isEditing =
+            params.context.editingRowId === params.data._id;
 
           return (
-            <div className="flex items-center mt-2 gap-3">
+            <div className="flex items-center gap-3 mt-1">
               {/* Edit */}
-              {editable && !isEditing && (
+              {!isEditing && (
                 <button
                   onClick={() => {
                     setEditingRowId(params.data._id);
 
                     setTimeout(() => {
-                      gridRef.current.api.refreshCells({ force: true });
-
                       gridRef.current.api.startEditingCell({
                         rowIndex: params.node.rowIndex,
-                        colKey: "startDate",
+                        colKey: "projectName",
                       });
                     }, 0);
                   }}
@@ -139,42 +68,44 @@ function Projects() {
               )}
 
               {/* Save */}
-              {editable && isEditing && (
+              {isEditing && (
                 <button
                   onClick={() => {
                     gridRef.current.api.stopEditing();
                     setEditingRowId(null);
-                    gridRef.current.api.refreshCells({ force: true });
                   }}
                   className="text-green-600 hover:scale-110"
                 >
                   <Check size={16} />
                 </button>
               )}
-
-              {/* Add Contributor */}
-              {editable && !isEditing && (
-                <button
-                  onClick={() => {
-                    setActiveProjectId(params.data._id);
-                    setShowContributorModal(true);
-                  }}
-                  className="text-gray-700 hover:scale-110"
-                >
-                  <UserPlus size={16} />
-                </button>
-              )}
-
-              {!editable && (
-                <span className="text-gray-400 text-sm">No Access</span>
-              )}
             </div>
           );
         },
       },
     ],
-    [editingRowId, user]
+    []
   );
+
+  /* ---------------- Grid Events ---------------- */
+
+  const onCellValueChanged = (params) => {
+    setProjects((prev) =>
+      prev.map((p) =>
+        p._id === params.data._id ? params.data : p
+      )
+    );
+  };
+
+  /* ---------------- Guard: Admin Only ---------------- */
+
+  if (user.role !== "admin") {
+    return (
+      <div className="p-6 text-red-600 font-medium">
+        Access Denied
+      </div>
+    );
+  }
 
   /* ---------------- UI ---------------- */
 
@@ -184,28 +115,16 @@ function Projects() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Projects</h1>
 
-        {user.role === "admin" && (
-          <button
-            onClick={() => navigate("/add-new-project")}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
-          >
-            + Add Project
-          </button>
-        )}
-      </div>
-
-      {/* Analytics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-        <AnalyticsCard title="Completed Projects" value={analytics.completed} />
-        <AnalyticsCard
-          title="In Progress Projects"
-          value={analytics.inProgress}
-        />
-        <AnalyticsCard title="Upcoming Projects" value={analytics.upcoming} />
+        <button
+          onClick={() => navigate("/add-new-project")}
+          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+        >
+          + Add Project
+        </button>
       </div>
 
       {/* Table */}
-      <div className="ag-theme-quartz" style={{ height: 500 }}>
+      <div className="ag-theme-quartz" style={{ height: 400 }}>
         <AgGridReact
           ref={gridRef}
           theme={themeQuartz}
@@ -213,8 +132,9 @@ function Projects() {
           columnDefs={columnDefs}
           context={{ editingRowId }}
           suppressClickEdit={true}
-          stopEditingWhenCellsLoseFocus={false}
           singleClickEdit={true}
+          stopEditingWhenCellsLoseFocus={false}
+          onCellValueChanged={onCellValueChanged}
           defaultColDef={{
             sortable: true,
             filter: true,
@@ -222,15 +142,6 @@ function Projects() {
           }}
         />
       </div>
-      {showContributorModal && (
-        <AddContributorsModal
-          projectId={activeProjectId}
-          onClose={() => {
-            setShowContributorModal(false);
-            setActiveProjectId(null);
-          }}
-        />
-      )}
     </div>
   );
 }

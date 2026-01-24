@@ -30,15 +30,15 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["employee", "admin", "manager"],
+      enum: ["employee", "admin"],
       default: "employee"
     },
 
-    reportsTo: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null
-    },
+    // reportsTo: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "User",
+    //   default: null
+    // },
 
     joiningDate: {
       type: Date,

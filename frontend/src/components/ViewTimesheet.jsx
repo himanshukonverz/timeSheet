@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import TimesheetGrid from "../components/TimesheetGrid";
 import { useAuth } from "../context/AuthContext";
 import EmployeeSearch from "./EmployeeSearch";
+import { toast } from "sonner";
+import api from "@/api/axios";
 
 // Helper function to get default dates
 const getDefaultDates = () => {
@@ -18,88 +20,65 @@ const getDefaultDates = () => {
   return { fromDate: fromDateString, toDate: toDateString };
 };
 
-// Dummy data - replace with API call later
-const dummyRowData = [
-  {
-    id: "1",
-    taskDate: "2026-01-02",
-    projectName: "Project Alpha",
-    projectCategory: "implementation",
-    projectStage: "BPU",
-    taskDescription: "API integration work",
-    plannedDuration: 180,
-    actualDuration: 200,
-    status: "completed",
-  },
-  {
-    id: "2",
-    taskDate: "2026-01-02",
-    projectName: "Project Beta",
-    projectCategory: "AMS",
-    projectStage: "Prod Support",
-    taskDescription: "Bug fixes",
-    plannedDuration: 120,
-    actualDuration: 90,
-    status: "in_progress",
-  },
-  {
-    id: "3",
-    taskDate: "2026-01-03",
-    projectName: "Project Gamma",
-    projectCategory: "implementation",
-    projectStage: "CRP",
-    taskDescription: "Feature development",
-    plannedDuration: 240,
-    actualDuration: 250,
-    status: "completed",
-  },
-];
-
 function ViewTimesheet() {
   const defaultDates = getDefaultDates();
   const [fromDate, setFromDate] = useState(defaultDates.fromDate);
   const [toDate, setToDate] = useState(defaultDates.toDate);
-  const [rowData, setRowData] = useState(dummyRowData);
+  const [rowData, setRowData] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const { user } = useAuth();
   const canSearch = user.role === "admin" || user.role === "manager";
 
-  // Filter rowData based on date range
-  const filteredRowData = useMemo(() => {
-    if (!fromDate && !toDate) {
-      return rowData;
-    }
+  // Fetch data when filters change
+  useEffect(() => {
+    const fetchTimesheet = async () => {
+      try {
+        let targetEmpId = null;
+        if (canSearch && selectedEmployee) {
+          targetEmpId = selectedEmployee.empId;
+        }
 
-    return rowData.filter((row) => {
-      if (!row.taskDate) return false;
+        const params = new URLSearchParams({
+          fromDate,
+          toDate,
+        });
 
-      const taskDate = new Date(row.taskDate);
-      taskDate.setHours(0, 0, 0, 0);
-      const from = fromDate ? new Date(fromDate) : null;
-      if (from) {
-        from.setHours(0, 0, 0, 0);
-      }
-      const to = toDate ? new Date(toDate) : null;
-      if (to) {
-        to.setHours(23, 59, 59, 999);
-      }
+        if(canSearch && selectedEmployee){
+          params.append("empId", selectedEmployee.empId)
+        }
 
-      if (from && to) {
-        return taskDate >= from && taskDate <= to;
-      } else if (from) {
-        return taskDate >= from;
-      } else if (to) {
-        return taskDate <= to;
+        const res = await api.get(`/task/employee?${params.toString()}`);
+
+        const normalized = res.data.data.map((task) => ({
+          id: task._id,
+          taskDate: task.taskDate
+            ? new Date(task.taskDate).toISOString().split("T")[0]
+            : null,
+          project: task.projectId?.projectName || "Unknown",
+          projectCategory: task.projectCategory,
+          projectStage: task.projectStage,
+          taskDescription: task.taskDescription,
+          plannedDuration: task.pannedDuration,
+          actualDuration: task.actualDuration,
+          status: task.status,
+        }));
+
+        setRowData(normalized);
+      } catch (error) {
+        console.log("Failed to fetch timesheet - ", error);
+        toast.error("Failed to fetch timesheet data");
       }
-      return true;
-    });
-  }, [fromDate, toDate, rowData]);
+    };
+
+    fetchTimesheet();
+  }, [fromDate, toDate, selectedEmployee, canSearch]);
 
   const handleReset = () => {
     const defaults = getDefaultDates();
     setFromDate(defaults.fromDate);
     setToDate(defaults.toDate);
+    setSelectedEmployee(null);
   };
 
   return (
@@ -109,7 +88,11 @@ function ViewTimesheet() {
       {/* Date Range Filter */}
       <div className="mb-6 bg-white rounded-lg shadow-md p-4 border border-gray-200">
         <div className="flex flex-wrap items-end gap-4">
-          <div className={canSearch ? "w-[25%] min-w-[150px]" : "flex-1 min-w-[200px]"}>
+          <div
+            className={
+              canSearch ? "w-[25%] min-w-[150px]" : "flex-1 min-w-[200px]"
+            }
+          >
             <label
               htmlFor="fromDate"
               className="block text-sm font-medium text-gray-700 mb-2"
@@ -124,7 +107,11 @@ function ViewTimesheet() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <div className={canSearch ? "w-[25%] min-w-[150px]" : "flex-1 min-w-[200px]"}>
+          <div
+            className={
+              canSearch ? "w-[25%] min-w-[150px]" : "flex-1 min-w-[200px]"
+            }
+          >
             <label
               htmlFor="toDate"
               className="block text-sm font-medium text-gray-700 mb-2"
@@ -151,10 +138,18 @@ function ViewTimesheet() {
               />
             </div>
           )}
+          <div className="flex gap-2">
+            <button
+              onClick={handleReset}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium mb-1"
+            >
+              Reset
+            </button>
+          </div>
         </div>
       </div>
 
-      <TimesheetGrid rowData={filteredRowData} isEditable={false} />
+      <TimesheetGrid rowData={rowData} isEditable={false} />
     </div>
   );
 }

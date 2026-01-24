@@ -6,7 +6,7 @@ import { ErrorHandler } from "../utils/errorHandler.js";
 // create user
 export const createUser = asyncHandler(async (req, res) => {
   // console.log("req body - ", req.body)
-  const { empId, name, email, password, joiningDate, reportsTo, role } =
+  const { empId, name, email, password, joiningDate, role } =
     req.body;
 
   // 1️⃣ Basic required field validation
@@ -24,14 +24,10 @@ export const createUser = asyncHandler(async (req, res) => {
     throw new ErrorHandler(400, "User with this Employee ID already exists");
   }
 
-  // 3️⃣ Validate reportsTo (if provided)
-  let managerId = null;
-  if (reportsTo) {
-    const manager = await User.findOne({ empId: reportsTo });
-    if (!manager) {
-      throw new ErrorHandler(400, "Reporting manager not found");
-    }
-    managerId = manager._id;
+  const admin = await User.findOne({empId : 1001})
+
+  if(!admin && role === "employee"){
+    throw new ErrorHandler(404, "No Admin found")
   }
 
   // 4️⃣ Hash password
@@ -44,7 +40,7 @@ export const createUser = asyncHandler(async (req, res) => {
     email,
     password: hashedPassword,
     joiningDate,
-    reportsTo: managerId,
+    reportsTo: admin.id,
     role,
   });
 
@@ -76,11 +72,7 @@ export const getUserProfileData = asyncHandler(async (req, res) => {
   // console.log("req user - ", req.user)
 
   const user = await User.findById(id)
-    .select("name email joiningDate reportsTo empId")
-    .populate({
-      path: "reportsTo",
-      select: "name",
-    });
+    .select("name email joiningDate empId")
 
   if (!user) {
     res.status(404);
@@ -106,7 +98,35 @@ export const getUserProfileData = asyncHandler(async (req, res) => {
     empId : user.empId,
     email: user.email,
     joiningDate: user.joiningDate,
-    reportsTo: user.reportsTo ? user.reportsTo.name : null,
     profilePic : profilePic(user.empId)
     });
 });
+
+
+export const searchUsers = asyncHandler(async (req, res) => {
+  const {q} = req.query;
+  const firstFiveEmp = await User.find().limit(5);
+  
+  if(!q){
+    return res.status(200).json({success : true, data : firstFiveEmp})
+  }
+
+  const query = {
+    $or: [
+      { name : {$regex: q, $options: "i"} }
+    ]
+  }
+
+  // If query is a number, check if it matches empId
+  if(!isNaN(q)){
+    query.$or.push({empId: Number(q)})
+  }
+
+  const users = await User.find(query).select("name empId email").limit(10)
+
+  res.status(200).json({
+    success : true,
+    data : users
+  })
+
+})

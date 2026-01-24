@@ -35,27 +35,6 @@ const projectSchema = new mongoose.Schema(
       trim: true,
       unique : true
     },
-
-    contributors: {
-      type: [contributorSchema],
-      default: []
-    },
-
-    status : {
-      type : String,
-      enum : ["in-progress", "upcoming", "completed"],
-      default : "upcoming"
-    },
-
-    startDate : {
-      type: Date,
-      default : null
-    },
-
-    goLiveDate : {
-      type: Date,
-      default : null
-    }
   },
   {
     timestamps: true

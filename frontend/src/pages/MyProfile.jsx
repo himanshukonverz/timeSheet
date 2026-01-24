@@ -61,7 +61,7 @@ function Profile() {
         </p>
 
         {/* Details */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-1 place-items-center gap-6">
           {/* Employee ID */}
           <div>
             <label className="block text-sm font-medium text-gray-500 mb-1">
@@ -83,17 +83,6 @@ function Profile() {
                 : "-"}
             </p>
           </div>
-
-          {/* Reports To */}
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-1">
-              Reports To
-            </label>
-            <p className="text-gray-800 font-medium">
-              {profile.reportsTo || "—"}
-            </p>
-          </div>
-
         </div>
       </div>
     </div>

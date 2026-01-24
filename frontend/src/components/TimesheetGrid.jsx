@@ -1,13 +1,17 @@
 import React, { useMemo, useState, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { themeQuartz } from "ag-grid-community";
+import { toast } from "sonner";
+import api from "@/api/axios";
 
 function TimesheetGrid({
   rowData = [],
   isEditable = false,
+  dropdowns,
   onRowDataChanged = null,
   onAddRow = null,
   onSave = null,
+  dateRange,
 }) {
   const gridRef = useRef(null);
   const [changedRows, setChangedRows] = useState(new Set());
@@ -20,71 +24,84 @@ function TimesheetGrid({
         flex: 1,
         field: "taskDate",
         editable: isEditable,
+        cellEditor: "agDataCellEditor",
+        cellEditorParams: {
+          min: dateRange?.from,
+          max: dateRange?.to,
+        },
       },
+
       {
         headerName: "Project",
         flex: 1,
-        field: "projectName",
+        field: "project",
         editable: isEditable,
+        cellEditor: "agSelectCellEditor",
+        cellEditorParams: {
+          values: dropdowns?.projects?.map((p) => p._id) || [],
+        },
+        valueFormatter: (params) =>
+          dropdowns?.projects?.find((p) => p._id === params.value)
+            ?.projectName || "",
       },
+
       {
         headerName: "Category",
         flex: 1,
         field: "projectCategory",
+        editable: isEditable,
         cellEditor: "agSelectCellEditor",
         cellEditorParams: {
-          values: ["implementation", "integration", "AMS"],
+          values: dropdowns?.categories || [],
         },
-        editable: isEditable,
       },
+
       {
         headerName: "Stage",
         flex: 1,
         field: "projectStage",
+        editable: isEditable,
         cellEditor: "agSelectCellEditor",
         cellEditorParams: {
-          values: [
-            "BPU",
-            "CRP",
-            "TTT",
-            "Prod Config",
-            "Go Live",
-            "Hypercare",
-            "Others",
-          ],
+          values: dropdowns?.stages || [],
         },
-        editable: isEditable,
       },
+
       {
         headerName: "Description",
-        flex: 1,
+        flex: 2,
         field: "taskDescription",
         editable: isEditable,
       },
+
       {
         headerName: "Planned (min)",
         flex: 1,
         field: "plannedDuration",
         editable: isEditable,
+        valueParser: (params) => Number(params.newValue) || 0,
       },
+
       {
         headerName: "Actual (min)",
         flex: 1,
         field: "actualDuration",
         editable: isEditable,
+        valueParser: (params) => Number(params.newValue) || 0,
       },
+
       {
         headerName: "Status",
         flex: 1,
         field: "status",
+        editable: isEditable,
         cellEditor: "agSelectCellEditor",
         cellEditorParams: {
-          values: ["in_progress", "completed", "cancelled"],
+          values: dropdowns?.statuses || [],
         },
-        editable: isEditable,
       },
     ],
-    [isEditable]
+    [isEditable, dropdowns]
   );
 
   // Handle cell value changes
@@ -111,11 +128,43 @@ function TimesheetGrid({
   };
 
   // Handle save
-  const handleSave = () => {
-    if (onSave && changedRows.size > 0) {
-      const changedData = rowData.filter((row) => changedRows.has(row.id));
-      onSave(changedData, changedRows);
+  const handleSave = async () => {
+    try {
+      if (!gridRef.current?.api) return;
+
+      const allRows = [];
+      gridRef.current.api.forEachNode((node) => {
+        allRows.push(node.data);
+      });
+
+      console.log("All rows:", allRows);
+
+      const payload = {
+        tasks: allRows.map((row) => ({
+          // taskId: row.id?.startsWith("existing-")
+          //   ? row.id.replace("existing-", "")
+          //   : null,
+          taskDate: row.taskDate,
+          project: row.project,
+          projectCategory: row.projectCategory,
+          projectStage: row.projectStage,
+          plannedDuration: row.plannedDuration,
+          actualDuration: row.actualDuration,
+          status: row.status,
+          taskDescription: row.taskDescription,
+        })),
+      };
+
+      console.log("Payload:", payload);
+
+      const res = await api.put("/task", payload);
+      console.log("API response:", res);
+
+      toast.success("Timesheet saved successfully");
       setChangedRows(new Set());
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || "Save failed");
     }
   };
 
@@ -131,17 +180,21 @@ function TimesheetGrid({
             >
               Add Task
             </button>
-            {changedRows.size > 0 && (
+            {(changedRows.size > 0 ||
+              rowData.some((r) => r.id?.startsWith("new-"))) && (
               <button
-                onClick={handleSave}
+                onClick={onSave || handleSave} // Use onSave prop if provided, otherwise use local handleSave
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
               >
-                Save Changes ({changedRows.size})
+                Save Changes (
+                {changedRows.size +
+                  rowData.filter((r) => r.id?.startsWith("new-")).length}
+                )
               </button>
             )}
           </div>
 
-          <p className="text-red-600 font-medium mt-1 ">
+          <p className="text-red-600 font-medium mt-1">
             Note: Only tasks with dates within this range will be displayed.
           </p>
         </div>

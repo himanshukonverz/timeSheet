@@ -1,15 +1,26 @@
 import React, { useMemo, useState, useEffect } from "react";
 import TimesheetGrid from "./TimesheetGrid";
+import api from "@/api/axios";
+import { toast } from "sonner";
 
 // Helper function to get last 15 days (today included - 15 days backward)
 const getLast15DaysRange = () => {
   const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const todayString = `${year}-${month}-${day}`;
+  
   const fromDate = new Date(today);
-  fromDate.setDate(today.getDate() - 14); // 14 days back + today = 15 days
+  fromDate.setDate(today.getDate() - 14);
+  const fromYear = fromDate.getFullYear();
+  const fromMonth = String(fromDate.getMonth() + 1).padStart(2, '0');
+  const fromDay = String(fromDate.getDate()).padStart(2, '0');
+  const fromDateString = `${fromYear}-${fromMonth}-${fromDay}`;
 
   return {
-    from: fromDate.toISOString().split("T")[0],
-    to: today.toISOString().split("T")[0],
+    from: fromDateString,
+    to: todayString,
   };
 };
 
@@ -27,65 +38,54 @@ const isDateInRange = (dateString, fromDate, toDate) => {
   return date >= from && date <= to;
 };
 
-// Helper to generate dummy data within date range
-const generateDummyData = (fromDate, toDate) => {
-  const dummyData = [];
-  const from = new Date(fromDate);
-  const to = new Date(toDate);
-
-  // Generate some sample entries across the date range
-  const projects = ["Project Alpha", "Project Beta", "Project Gamma"];
-  const categories = ["implementation", "integration", "AMS"];
-  const stages = ["BPU", "CRP", "TTT", "Go Live"];
-  const statuses = ["in_progress", "completed", "cancelled"];
-
-  // Add a few entries spread across the date range
-  let idCounter = 1;
-  for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split("T")[0];
-    const dayOfWeek = d.getDay();
-
-    // Add 1-2 entries per day (skip weekends for variety)
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      // Add 1-2 tasks per weekday
-      const numTasks = Math.random() > 0.5 ? 1 : 2;
-
-      for (let i = 0; i < numTasks; i++) {
-        dummyData.push({
-          id: `existing-${idCounter++}`,
-          taskDate: dateStr,
-          projectName: projects[Math.floor(Math.random() * projects.length)],
-          projectCategory:
-            categories[Math.floor(Math.random() * categories.length)],
-          projectStage: stages[Math.floor(Math.random() * stages.length)],
-          taskDescription: `Task description for ${dateStr}`,
-          plannedDuration: Math.floor(Math.random() * 300) + 60, // 60-360 minutes
-          actualDuration: Math.floor(Math.random() * 300) + 60,
-          status: statuses[Math.floor(Math.random() * statuses.length)],
-        });
-      }
-    }
-  }
-
-  return dummyData;
-};
-
 function FillTimesheet() {
   const dateRange = useMemo(() => getLast15DaysRange(), []);
   const [rowData, setRowData] = useState([]);
 
+  const [dropdowns, setDropdowns] = useState({
+    projects: [],
+    categories: [],
+    stages: [],
+    statuses: [],
+  });
+
+  useEffect(() => {
+    const fetchDropdowns = async () => {
+      const res = await api.get("/task/metadata");
+      setDropdowns(res.data);
+    };
+
+    fetchDropdowns();
+  }, []);
+
   // Initialize with dummy data (simulating backend fetch)
   useEffect(() => {
     // TODO: Replace with actual API call
-    // const fetchTimesheetData = async () => {
-    //   const response = await api.get(`/timesheet?from=${dateRange.from}&to=${dateRange.to}`);
-    //   setRowData(response.data);
-    // };
-    // fetchTimesheetData();
+    const fetchTimesheetData = async () => {
+      try {
+        const response = await api.get(
+          `/task/employee?fromDate=${dateRange.from}&toDate=${dateRange.to}`
+        );
+        console.log("response - ", response);
+        const normalized = response.data.data?.map((task) => ({
+          id: task._id,
+          taskDate: task.taskDate ? new Date(task.taskDate).toISOString().split("T")[0] : null,
+          project: task.projectId?._id || task.projectId,
+          projectCategory: task.projectCategory,
+          projectStage: task.projectStage,
+          taskDescription: task.taskDescription,
+          plannedDuration: task.plannedDuration,
+          actualDuration: task.actualDuration || 0,
+          status: task.status,
+        }));
+        setRowData(normalized || []);
+      } catch (err) {
+        console.error("Error fetching timesheet data:", err);
+        toast.error("Failed to load timesheet data");
+      }
+    };
 
-    // For now, use dummy data
-    const dummyData = generateDummyData(dateRange.from, dateRange.to);
-    setRowData(dummyData);
+    fetchTimesheetData();
   }, [dateRange.from, dateRange.to]);
 
   // Filter rows to only show those within the 15-day range
@@ -98,11 +98,16 @@ function FillTimesheet() {
 
   // Handle adding a new task row
   const handleAddRow = () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayString = `${day}-${month}-${year}`;
+
     const newRow = {
       id: `new-${Date.now()}`,
-      taskDate: today,
-      projectName: null,
+      taskDate: todayString,
+      project: null,
       projectCategory: null,
       projectStage: null,
       taskDescription: null,
@@ -133,10 +138,109 @@ function FillTimesheet() {
   };
 
   // Handle save
-  const handleSave = (changedData, changedRows) => {
-    console.log("Saving data:", changedData);
-    // TODO: Call API to save timesheet data
-    // await api.post('/timesheet', { tasks: changedData });
+  const handleSave = async () => {
+    try {
+      const existingTasks = [];
+      const newTasks = [];
+      const validationErrors = [];
+
+      // Validate ans separate tasks
+      rowData.forEach((row) => {
+        // Skip empty new rows
+        if (
+          row.id?.startsWith("new-") &&
+          !row.project &&
+          !row.taskDescription
+        ) {
+          return; // Skip empty new rows
+        }
+        const baseTask = {
+          taskDate: row.taskDate 
+            ? (typeof row.taskDate === 'string' 
+                ? row.taskDate.split('T')[0]  // Remove time if present
+                : new Date(row.taskDate).toISOString().split('T')[0])  // Convert Date to string
+            : null,
+          project: row.project,
+          projectCategory: row.projectCategory,
+          projectStage: row.projectStage,
+          plannedDuration: row.plannedDuration,
+          actualDuration: row.actualDuration || 0,
+          status: row.status,
+          taskDescription: row.taskDescription,
+        };
+
+        // Validate required fields
+        if (
+          !baseTask.project ||
+          !baseTask.projectCategory ||
+          !baseTask.projectStage ||
+          !baseTask.taskDescription ||
+          baseTask.plannedDuration === undefined ||
+          baseTask.plannedDuration === null ||
+          !baseTask.status ||
+          !baseTask.taskDate
+        ) {
+          validationErrors.push({
+            index,
+            error: "Missing required fields",
+          });
+          return;
+        }
+
+        if (row.id?.startsWith("new-")) {
+          newTasks.push(baseTask);
+        } else {
+          existingTasks.push({
+            taskId: row.id,
+            ...baseTask,
+          });
+        }
+      });
+
+      if (validationErrors.length > 0) {
+        toast.error(
+          `Please fill all required fields. ${validationErrors.length} task(s) have errors.`
+        );
+        return;
+      }
+
+      if (existingTasks.length === 0 && newTasks.length === 0) {
+        toast.info("No tasks to save");
+        return;
+      }
+
+      // Save existing tasks
+      if (existingTasks.length > 0) {
+        await api.put("/task", { tasks: existingTasks });
+      }
+
+      // Save new tasks
+      if (newTasks.length > 0) {
+        await api.post("/task/create", { tasks: newTasks });
+      }
+
+      toast.success(
+        `Timesheet saved successfully! ${existingTasks.length} updated, ${newTasks.length} created.`
+      );
+
+      // Refresh data after save
+      const response = await api.get(
+        `/task/employee?from=${dateRange.from}&to=${dateRange.to}`
+      );
+      const normalized = response.data.data?.map((task) => ({
+        id: task._id,
+        project: task.projectId?._id || task.projectId,
+        ...task,
+      }));
+      setRowData(normalized);
+    } catch (err) {
+      console.error(err);
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.error ||
+        "Save failed";
+      toast.error(errorMsg);
+    }
   };
 
   return (
@@ -153,16 +257,17 @@ function FillTimesheet() {
           <p>
             Date Range: {dateRange.from} to {dateRange.to}
           </p>
-          
         </div>
       </div>
 
       <TimesheetGrid
         rowData={filteredRowData}
         isEditable={true}
+        dropdowns={dropdowns}
         onRowDataChanged={handleRowDataChanged}
         onAddRow={handleAddRow}
         onSave={handleSave}
+        dateRange={dateRange}
       />
     </div>
   );

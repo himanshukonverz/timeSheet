@@ -2,27 +2,41 @@ import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 import api from "../api/axios";
 
-function EmployeeSearch({ onSelect }) {
+function EmployeeSearch({ onSelect, selectedEmployee }) {
   const [query, setQuery] = useState("");
-  const [debouncedQuery] = useDebounce(query, 400);
+  // Sync query with selectedEmployee when it changes (e.g., reset)
+  useEffect(() => {
+     if (!selectedEmployee) {
+         setQuery("");
+     } else {
+         setQuery(selectedEmployee.name);
+     }
+  }, [selectedEmployee]);
+
+  const [debouncedQuery] = useDebounce(query, 500);
   const [results, setResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Fetch matching users
   useEffect(() => {
-    if (!debouncedQuery) {
+    // Prevent searching if query matches selected employee (avoids re-search on selection)
+    if (!debouncedQuery || (selectedEmployee && debouncedQuery === selectedEmployee.name)) {
       setResults([]);
       return;
     }
 
     const fetchUsers = async () => {
-    //   const res = await api.get(`/users/search?q=${debouncedQuery}`);
-    //   setResults(res.data.data);
-      setShowDropdown(true);
+      try {
+        const res = await api.get(`/user/search?q=${debouncedQuery}`);
+        setResults(res.data.data);
+        setShowDropdown(true);
+      } catch (error) {
+        console.log("search failed - ", error);
+      }
     };
 
     fetchUsers();
-  }, [debouncedQuery]);
+  }, [debouncedQuery, selectedEmployee]);
 
   return (
     <div className="relative w-full">
@@ -30,19 +44,25 @@ function EmployeeSearch({ onSelect }) {
         type="text"
         placeholder="Search employee..."
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+            setQuery(e.target.value);
+            // If user clears input manually, notify parent
+            if (e.target.value === "") {
+                onSelect(null);
+            }
+        }}
         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
 
       {showDropdown && results.length > 0 && (
-        <div className="absolute z-10 w-full bg-white border rounded-md shadow-md mt-1">
+        <div className="absolute z-10 w-full bg-white border rounded-md overflow-hidden shadow-md mt-1">
           {results.map((user) => (
             <div
               key={user._id}
               className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
               onClick={() => {
                 onSelect(user);
-                setQuery(user.name);
+                setQuery(user.name); // Handled by useEffect now
                 setShowDropdown(false);
               }}
             >
