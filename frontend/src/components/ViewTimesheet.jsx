@@ -1,155 +1,99 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import TimesheetGrid from "../components/TimesheetGrid";
 import { useAuth } from "../context/AuthContext";
 import EmployeeSearch from "./EmployeeSearch";
+import DateRangePicker from "@/components/DatePicker";
 import { toast } from "sonner";
 import api from "@/api/axios";
 
-// Helper function to get default dates
 const getDefaultDates = () => {
   const now = new Date();
-
-  // toDate: current date of current month
-  const toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const toDateString = toDate.toISOString().split("T")[0];
-
-  // fromDate: 26th of previous month
-  const fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 26);
-  const fromDateString = fromDate.toISOString().split("T")[0];
-
-  return { fromDate: fromDateString, toDate: toDateString };
+  return {
+    fromDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
+    toDate: now.toISOString().split("T")[0],
+  };
 };
 
 function ViewTimesheet() {
-  const defaultDates = getDefaultDates();
-  const [fromDate, setFromDate] = useState(defaultDates.fromDate);
-  const [toDate, setToDate] = useState(defaultDates.toDate);
-  const [rowData, setRowData] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-
   const { user } = useAuth();
   const canSearch = user.role === "admin" || user.role === "manager";
+  const defaults = getDefaultDates();
 
-  // Fetch data when filters change
+  const [fromDate, setFromDate] = useState(defaults.fromDate);
+  const [toDate, setToDate] = useState(defaults.toDate);
+  const [rowData, setRowData] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [dropdowns, setDropdowns] = useState({ projects: [], categories: [], stages: [], statuses: [] });
+
+  useEffect(() => {
+    const fetchDropdowns = async () => {
+      try {
+        const res = await api.get("/task/metadata");
+        setDropdowns(res.data);
+      } catch (err) { toast.error("Failed to load metadata"); }
+    };
+    fetchDropdowns();
+  }, []);
+
   useEffect(() => {
     const fetchTimesheet = async () => {
       try {
-        let targetEmpId = null;
-        if (canSearch && selectedEmployee) {
-          targetEmpId = selectedEmployee.empId;
-        }
-
-        const params = new URLSearchParams({
-          fromDate,
-          toDate,
-        });
-
-        if(canSearch && selectedEmployee){
-          params.append("empId", selectedEmployee.empId)
-        }
-
+        const params = new URLSearchParams({ fromDate, toDate });
+        if (canSearch && selectedEmployee) params.append("empId", selectedEmployee.empId);
+        
         const res = await api.get(`/task/employee?${params.toString()}`);
-
         const normalized = res.data.data.map((task) => ({
           id: task._id,
-          taskDate: task.taskDate
-            ? new Date(task.taskDate).toISOString().split("T")[0]
-            : null,
-          project: task.projectId?.projectName || "Unknown",
+          taskDate: task.taskDate?.split("T")[0],
+          project: task?.projectId?._id,
           projectCategory: task.projectCategory,
           projectStage: task.projectStage,
           taskDescription: task.taskDescription,
-          plannedDuration: task.pannedDuration,
+          plannedDuration: task.plannedDuration,
           actualDuration: task.actualDuration,
           status: task.status,
         }));
-
         setRowData(normalized);
-      } catch (error) {
-        console.log("Failed to fetch timesheet - ", error);
-        toast.error("Failed to fetch timesheet data");
-      }
+      } catch (error) { toast.error("Failed to fetch timesheet data"); }
     };
-
     fetchTimesheet();
   }, [fromDate, toDate, selectedEmployee, canSearch]);
 
   const handleReset = () => {
-    const defaults = getDefaultDates();
-    setFromDate(defaults.fromDate);
-    setToDate(defaults.toDate);
+    const d = getDefaultDates();
+    setFromDate(d.fromDate);
+    setToDate(d.toDate);
     setSelectedEmployee(null);
   };
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">View Timesheet</h1>
+  if (!dropdowns.projects.length) return <div className="p-8 text-center text-slate-500">Loading Grid...</div>;
 
-      {/* Date Range Filter */}
-      <div className="mb-6 bg-white rounded-lg shadow-md p-4 border border-gray-200">
-        <div className="flex flex-wrap items-end gap-4">
-          <div
-            className={
-              canSearch ? "w-[25%] min-w-[150px]" : "flex-1 min-w-[200px]"
-            }
-          >
-            <label
-              htmlFor="fromDate"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              From Date
-            </label>
-            <input
-              type="date"
-              id="fromDate"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Timesheet Records</h1>
+            <p className="text-slate-500 text-sm">Review and manage time logs across projects.</p>
           </div>
-          <div
-            className={
-              canSearch ? "w-[25%] min-w-[150px]" : "flex-1 min-w-[200px]"
-            }
-          >
-            <label
-              htmlFor="toDate"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              To Date
-            </label>
-            <input
-              type="date"
-              id="toDate"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          {canSearch && (
-            <div className="w-[45%] min-w-[250px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search Employee
-              </label>
-              <EmployeeSearch
-                onSelect={(user) => {
-                  setSelectedEmployee(user);
-                }}
-              />
-            </div>
-          )}
-          <div className="flex gap-2">
-            <button
-              onClick={handleReset}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium mb-1"
-            >
+
+          <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+            {canSearch && (
+              <div className="w-64 border-r border-slate-100 pr-3 mr-1">
+                <EmployeeSearch onSelect={setSelectedEmployee} />
+              </div>
+            )}
+            <DateRangePicker fromDate={fromDate} toDate={toDate} setFromDate={setFromDate} setToDate={setToDate} />
+            <button onClick={handleReset} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200">
               Reset
             </button>
           </div>
         </div>
-      </div>
 
-      <TimesheetGrid rowData={rowData} isEditable={false} />
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <TimesheetGrid rowData={rowData} dropdowns={dropdowns} isEditable={false} />
+        </div>
+      </div>
     </div>
   );
 }

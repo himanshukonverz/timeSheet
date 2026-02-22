@@ -6,26 +6,33 @@ const taskSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true
+      index: true,
     },
 
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
       required: true,
-      index: true
+      index: true,
     },
 
-    taskDate : {
-        type: Date,
-        required: true,
-        index: true
+    taskDate: {
+      type: Date,
+      required: true,
+      index: true,
     },
 
     projectCategory: {
       type: String,
-      enum: ["implementation", "integration", "AMS", "leave", "week-off", "internal meeting", "administrative", "business development"],
-      required: true
+      enum: [
+        "implementation",
+        "integration",
+        "AMS",
+        "internal meeting",
+        "administrative",
+        "business development",
+      ],
+      required: true,
     },
 
     projectStage: {
@@ -40,55 +47,52 @@ const taskSchema = new mongoose.Schema(
         "Go Live",
         "Hypercare",
         "Others",
-        "half-day-leave",
-        "full-day-leave",
-        "week-off"
       ],
-      required: true
+      required: true,
     },
 
     taskDescription: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
 
     plannedDuration: {
       type: Number, // Minutes
       required: true,
-      min: 0
+      min: 0,
     },
 
     actualDuration: {
       type: Number, // Minutes
       default: 0,
-      min: 0
+      min: 0,
     },
 
     status: {
       type: String,
       enum: ["in_progress", "completed", "cancelled"],
-      required : true
+      required: true,
     },
 
     isDeleted: {
-        type: Boolean,
-        default: false,
+      type: Boolean,
+      default: false,
     },
-      
+
     deletedAt: {
-        type: Date,
-        default: null
+      type: Date,
+      default: null,
     },
-    
+
     deletedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: null
-    }
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   {
-    timestamps: true // creates createdAt & updatedAt
+    timestamps: true, // creates createdAt & updatedAt
   }
 );
 

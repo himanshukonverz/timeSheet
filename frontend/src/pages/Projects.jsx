@@ -1,22 +1,13 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { themeQuartz } from "ag-grid-community";
 import { useNavigate } from "react-router-dom";
 import { Pencil, Check } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import api from "@/api/axios";
+import { toast } from "sonner";
 
 /* ---------------- Dummy Data ---------------- */
-
-const initialProjects = [
-  {
-    _id: "1",
-    projectName: "Project Alpha",
-  },
-  {
-    _id: "2",
-    projectName: "Project Beta",
-  },
-];
 
 function Projects() {
   const navigate = useNavigate();
@@ -24,8 +15,42 @@ function Projects() {
 
   const gridRef = useRef(null);
 
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState([]);
   const [editingRowId, setEditingRowId] = useState(null);
+
+  useEffect(() => {
+    const fetchAllProjects = async () => {
+      const res = await api.get(`${import.meta.env.VITE_SERVER}/project/all`);
+      // console.log("res - ", res)
+      if (!res.data?.success) {
+        toast.error("Failed to fetch Projects, Please try again later");
+      }
+      setProjects(res.data?.projects);
+    };
+
+    fetchAllProjects();
+  }, []);
+
+  const updateProjectName = async (project) => {
+    try {
+      const res = await api.put(
+        `${import.meta.env.VITE_SERVER}/project/${project._id}`,
+        { projectName: project.projectName }
+      );
+
+      if (!res.data?.success) {
+        throw new Error("Update failed");
+      }
+
+      toast.success("Project updated successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || "Failed to update project");
+
+      // revert change if API fails
+      fetchAllProjects();
+    }
+  };
 
   /* ---------------- Columns ---------------- */
 
@@ -35,16 +60,14 @@ function Projects() {
         headerName: "Project Name",
         field: "projectName",
         flex: 2,
-        editable: (params) =>
-          params.context.editingRowId === params.data._id,
+        editable: (params) => params.context.editingRowId === params.data._id,
       },
 
       {
         headerName: "Edit",
         flex: 1,
         cellRenderer: (params) => {
-          const isEditing =
-            params.context.editingRowId === params.data._id;
+          const isEditing = params.context.editingRowId === params.data._id;
 
           return (
             <div className="flex items-center gap-3 mt-1">
@@ -70,8 +93,15 @@ function Projects() {
               {/* Save */}
               {isEditing && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    // stop editing first so grid updates row data
                     gridRef.current.api.stopEditing();
+
+                    const updatedProject = params.data;
+
+                    // call backend
+                    await updateProjectName(updatedProject);
+
                     setEditingRowId(null);
                   }}
                   className="text-green-600 hover:scale-110"
@@ -91,20 +121,14 @@ function Projects() {
 
   const onCellValueChanged = (params) => {
     setProjects((prev) =>
-      prev.map((p) =>
-        p._id === params.data._id ? params.data : p
-      )
+      prev.map((p) => (p._id === params.data._id ? params.data : p))
     );
   };
 
   /* ---------------- Guard: Admin Only ---------------- */
 
   if (user.role !== "admin") {
-    return (
-      <div className="p-6 text-red-600 font-medium">
-        Access Denied
-      </div>
-    );
+    return <div className="p-6 text-red-600 font-medium">Access Denied</div>;
   }
 
   /* ---------------- UI ---------------- */

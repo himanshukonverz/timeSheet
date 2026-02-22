@@ -21,13 +21,27 @@ function TimesheetGrid({
     () => [
       {
         headerName: "Date",
-        flex: 1,
         field: "taskDate",
+        flex: 1,
         editable: isEditable,
-        cellEditor: "agDataCellEditor",
+
+        // ✅ show calendar popup
+        cellEditor: "agDateCellEditor",
+
+        // ✅ restrict allowed range
         cellEditorParams: {
           min: dateRange?.from,
           max: dateRange?.to,
+        },
+
+        // ✅ keep display clean
+        valueFormatter: (params) => {
+          return params.value || "";
+        },
+
+        // ✅ VERY IMPORTANT → keep date as yyyy-mm-dd string
+        valueParser: (params) => {
+          return params.newValue;
         },
       },
 
@@ -36,13 +50,28 @@ function TimesheetGrid({
         flex: 1,
         field: "project",
         editable: isEditable,
+
+        // 1️⃣ Dropdown stores PROJECT IDs
         cellEditor: "agSelectCellEditor",
         cellEditorParams: {
           values: dropdowns?.projects?.map((p) => p._id) || [],
         },
-        valueFormatter: (params) =>
-          dropdowns?.projects?.find((p) => p._id === params.value)
-            ?.projectName || "",
+
+        // 2️⃣ Grid DISPLAY shows projectName instead of ID
+        valueFormatter: (params) => {
+          if (!params.value) return "";
+
+          const project = dropdowns?.projects?.find(
+            (p) => p._id === params.value
+          );
+
+          return project?.projectName || "";
+        },
+
+        // 3️⃣ When user selects, ensure ID is saved (safety)
+        valueParser: (params) => {
+          return params.newValue;
+        },
       },
 
       {
@@ -186,10 +215,7 @@ function TimesheetGrid({
                 onClick={onSave || handleSave} // Use onSave prop if provided, otherwise use local handleSave
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
               >
-                Save Changes (
-                {changedRows.size +
-                  rowData.filter((r) => r.id?.startsWith("new-")).length}
-                )
+                Save Changes
               </button>
             )}
           </div>
@@ -208,6 +234,7 @@ function TimesheetGrid({
           rowData={rowData}
           columnDefs={columnDefs}
           onCellValueChanged={onCellValueChanged}
+          stopEditingWhenCellsLoseFocus={true}
           defaultColDef={{
             resizable: true,
             sortable: true,

@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react'
-import AnalyticsCard from './AnalyticsCard'
+import React from "react";
+import { AnalyticsCard } from "./AnalyticsCard";
+import { Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -9,157 +10,72 @@ import {
   Title,
   Tooltip,
   Legend,
-} from 'chart.js'
-import { Bar, Pie } from 'react-chartjs-2'
+} from "chart.js";
 
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-)
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
-function EmployeeDashboard() {
-  // Dummy data for charts
-  const projectNames = ['Project Alpha', 'Project Beta', 'Project Gamma', 'Project Delta', 'Project Echo']
-  const hoursData = [45, 30, 25, 20, 15]
-  
-  // Bar chart data
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+  },
+  scales: {
+    y: { grid: { display: true, color: "#F1F5F9" }, ticks: { color: "#94A3B8", font: { size: 11 } } },
+    x: { grid: { display: false }, ticks: { color: "#94A3B8", font: { size: 11 } } },
+  },
+};
+
+function EmployeeDashboard({ analytics }) {
+  const { cards, charts } = analytics;
+  const projectNames = charts.projectEffort.map((p) => p.projectName);
+  const hoursData = charts.projectEffort.map((p) => p.hours);
+  const totalHoursAll = hoursData.reduce((a, b) => a + b, 0);
+
   const barChartData = {
     labels: projectNames,
-    datasets: [
-      {
-        label: 'Hours',
-        data: hoursData,
-        backgroundColor: 'rgba(59, 130, 246, 0.6)',
-        borderColor: 'rgba(59, 130, 246, 1)',
-        borderWidth: 1,
-      },
-    ],
-  }
+    datasets: [{ label: "Hours", data: hoursData, backgroundColor: "#3B82F6", borderRadius: 6 }],
+  };
 
-  // Pie chart data
-  const totalHours = hoursData.reduce((sum, hours) => sum + hours, 0)
   const pieChartData = {
     labels: projectNames,
-    datasets: [
-      {
-        label: 'Time Effort %',
-        data: hoursData.map(hours => ((hours / totalHours) * 100).toFixed(1)),
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(139, 92, 246, 0.8)',
-        ],
-        borderColor: [
-          'rgba(59, 130, 246, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(239, 68, 68, 1)',
-          'rgba(139, 92, 246, 1)',
-        ],
-        borderWidth: 2,
-      },
-    ],
-  }
-
-  const barChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Hours by Project',
-        font: {
-          size: 16,
-          weight: 'bold',
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Hours',
-        },
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Projects',
-        },
-      },
-    },
-  }
-
-  const pieChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'right',
-      },
-      title: {
-        display: true,
-        text: 'Time Effort Distribution (%)',
-        font: {
-          size: 16,
-          weight: 'bold',
-        },
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            let label = context.label || ''
-            if (label) {
-              label += ': '
-            }
-            label += context.parsed + '%'
-            return label
-          },
-        },
-      },
-    },
-  }
+    datasets: [{
+      data: hoursData.map((h) => ((h / totalHoursAll) * 100).toFixed(1)),
+      backgroundColor: ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"],
+      borderWidth: 2,
+      borderColor: "#ffffff",
+    }],
+  };
 
   return (
-    <div className="p-6">
-      {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <AnalyticsCard title="Total Hours" value="120" />
-        <AnalyticsCard title="Projects" value="5" />
-        <AnalyticsCard title="Tasks Completed" value="42" />
-        <AnalyticsCard title="Pending Tasks" value="8" />
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <AnalyticsCard title="Total Hours" value={cards.totalHours} icon="🕒" color="blue" />
+        <AnalyticsCard title="Active Projects" value={cards.projectsCount} icon="📁" color="indigo" />
+        <AnalyticsCard title="Tasks Completed" value={cards.completedTasks} icon="✅" color="emerald" />
+        <AnalyticsCard title="Pending Tasks" value={cards.pendingTasks} icon="⏳" color="amber" />
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <div className="h-80">
-            <Bar data={barChartData} options={barChartOptions} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-slate-800">Project Effort (Hours)</h3>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Last 30 Days</span>
+          </div>
+          <div className="h-[350px]">
+            <Bar data={barChartData} options={chartOptions} />
           </div>
         </div>
 
-        {/* Pie Chart */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <div className="h-80">
-            <Pie data={pieChartData} options={pieChartOptions} />
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <h3 className="text-lg font-semibold text-slate-800 mb-6">Work Distribution</h3>
+          <div className="h-[300px] relative flex items-center justify-center">
+            <Pie data={pieChartData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } } }} />
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default EmployeeDashboard
+export default EmployeeDashboard;

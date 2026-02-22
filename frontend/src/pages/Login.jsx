@@ -2,14 +2,13 @@ import api from "../api/axios"
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { fetchCurrentLoggedInUser } from '../api/fetchCurrentUser';
 import { toast } from 'sonner';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const { setUser, setLoading } = useAuth();
+  const { refreshUser } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,7 +16,7 @@ const Login = () => {
       const res = await api.post("/auth/login", {email, password});
       console.log('res login - ', res);
       if (res?.data.success) {
-        fetchCurrentLoggedInUser(setUser, setLoading);
+        await refreshUser()
         toast.success(res?.data.message || 'Login successfull!');
         navigate('/');
       }

@@ -68,6 +68,55 @@ export const createProject = asyncHandler(
     }
 )
 
+// Update a project name
+export const updateProject = asyncHandler(async (req, res) => {
+  const { projectName } = req.body;
+  const { id } = req.params;
+
+  // 1️⃣ Validation
+  if (!projectName || projectName.trim() === "") {
+    throw new ErrorHandler(400, "Project name is required");
+  }
+
+  if (!req.user || !req.user.id) {
+    throw new ErrorHandler(403, "Unauthorized: user not found");
+  }
+
+  if (req.user.role !== "admin") {
+    throw new ErrorHandler(403, "Unauthorized: Only Admins can update Projects");
+  }
+
+  // 2️⃣ Find project to update
+  const project = await Project.findById(id);
+  if (!project) {
+    throw new ErrorHandler(404, "Project not found");
+  }
+
+  // 3️⃣ Check if another project already has this name
+  const existingProject = await Project.findOne({
+    projectName: projectName.trim(),
+    _id: { $ne: id }, // ignore current project
+  });
+
+  if (existingProject) {
+    throw new ErrorHandler(
+      409,
+      `Project "${projectName}" already exists`
+    );
+  }
+
+  // 4️⃣ Update & save
+  project.projectName = projectName.trim();
+  await project.save();
+
+  // 5️⃣ Response
+  res.status(200).json({
+    success: true,
+    message: "Project updated successfully",
+    project,
+  });
+});
+
 // Add user to a project
 export const addEmployeeInProject = asyncHandler(async (req, res) => {
     const { empId, projectRole, projectModules, hasEditAccess } = req.body;

@@ -102,6 +102,7 @@ export const getEmployeeTasks = asyncHandler(async (req, res) => {
 // create a task
 export const createTasks = asyncHandler(async (req, res) => {
   const { tasks } = req.body;
+  console.log("tasks - ", tasks)
 
   if (!Array.isArray(tasks) || tasks.length === 0) {
     throw new ErrorHandler(400, "Tasks array is required");
@@ -404,8 +405,6 @@ export const getTimesheetMetadata = asyncHandler(async (req, res) => {
       "implementation",
       "integration",
       "AMS",
-      "leave",
-      "week-off",
       "internal meeting",
       "administrative",
       "business development",
@@ -420,9 +419,6 @@ export const getTimesheetMetadata = asyncHandler(async (req, res) => {
       "Go Live",
       "Hypercare",
       "Others",
-      "half-day-leave",
-      "full-day-leave",
-      "week-off",
     ],
     statuses: ["in_progress", "completed", "cancelled"],
   });

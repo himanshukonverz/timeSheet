@@ -11,6 +11,7 @@ import authRoutes from "./routes/auth.routes.js"
 import userRoutes from "./routes/user.routes.js"
 import projectRoutes from "./routes/project.routes.js"
 import taskRoutes from "./routes/task.routes.js"
+import analyticsRoutes from "./routes/analytics.routes.js"
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -39,6 +40,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/user", userRoutes)
 app.use("/api/project", projectRoutes)
 app.use("/api/task", taskRoutes)
+app.use("/api/analytics", analyticsRoutes)
 
 app.use(errorMiddleware)
 

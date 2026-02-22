@@ -2,20 +2,21 @@ import React, { useMemo, useState, useEffect } from "react";
 import TimesheetGrid from "./TimesheetGrid";
 import api from "@/api/axios";
 import { toast } from "sonner";
+import { formatDateLocal } from "@/utils/date";
 
 // Helper function to get last 15 days (today included - 15 days backward)
 const getLast15DaysRange = () => {
   const today = new Date();
   const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
   const todayString = `${year}-${month}-${day}`;
-  
+
   const fromDate = new Date(today);
   fromDate.setDate(today.getDate() - 14);
   const fromYear = fromDate.getFullYear();
-  const fromMonth = String(fromDate.getMonth() + 1).padStart(2, '0');
-  const fromDay = String(fromDate.getDate()).padStart(2, '0');
+  const fromMonth = String(fromDate.getMonth() + 1).padStart(2, "0");
+  const fromDay = String(fromDate.getDate()).padStart(2, "0");
   const fromDateString = `${fromYear}-${fromMonth}-${fromDay}`;
 
   return {
@@ -69,8 +70,10 @@ function FillTimesheet() {
         console.log("response - ", response);
         const normalized = response.data.data?.map((task) => ({
           id: task._id,
-          taskDate: task.taskDate ? new Date(task.taskDate).toISOString().split("T")[0] : null,
-          project: task.projectId?._id || task.projectId,
+          taskDate: task.taskDate
+          ? formatDateLocal(task.taskDate)
+          : null,
+          project: task.projectId?._id,
           projectCategory: task.projectCategory,
           projectStage: task.projectStage,
           taskDescription: task.taskDescription,
@@ -101,8 +104,8 @@ function FillTimesheet() {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, '0');
-    const todayString = `${day}-${month}-${year}`;
+    const day = String(today.getDate()).padStart(2, "0");
+    const todayString = `${year}-${month}-${day}`;
 
     const newRow = {
       id: `new-${Date.now()}`,
@@ -123,15 +126,24 @@ function FillTimesheet() {
 
   // Handle row data changes
   const handleRowDataChanged = (updatedRow, params) => {
-    // If date was changed, validate it's within range
+    // user edited date
     if (params?.colDef?.field === "taskDate" && updatedRow.taskDate) {
-      if (!isDateInRange(updatedRow.taskDate, dateRange.from, dateRange.to)) {
-        // Show warning or prevent the change
+  
+      const isValid = isDateInRange(
+        updatedRow.taskDate,
+        dateRange.from,
+        dateRange.to
+      );
+  
+      if (!isValid) {
         alert(`Date must be between ${dateRange.from} and ${dateRange.to}`);
+  
+        // ⭐ CRITICAL FIX → revert the invalid value inside grid
+        params.node.setDataValue("taskDate", params.oldValue);
         return;
       }
     }
-
+  
     setRowData((prevData) =>
       prevData.map((row) => (row.id === updatedRow.id ? updatedRow : row))
     );
@@ -155,11 +167,7 @@ function FillTimesheet() {
           return; // Skip empty new rows
         }
         const baseTask = {
-          taskDate: row.taskDate 
-            ? (typeof row.taskDate === 'string' 
-                ? row.taskDate.split('T')[0]  // Remove time if present
-                : new Date(row.taskDate).toISOString().split('T')[0])  // Convert Date to string
-            : null,
+          taskDate: row.taskDate || null,
           project: row.project,
           projectCategory: row.projectCategory,
           projectStage: row.projectStage,
@@ -168,6 +176,8 @@ function FillTimesheet() {
           status: row.status,
           taskDescription: row.taskDescription,
         };
+
+        console.log("base task - ", baseTask)
 
         // Validate required fields
         if (
@@ -181,7 +191,7 @@ function FillTimesheet() {
           !baseTask.taskDate
         ) {
           validationErrors.push({
-            index,
+            
             error: "Missing required fields",
           });
           return;
@@ -199,7 +209,7 @@ function FillTimesheet() {
 
       if (validationErrors.length > 0) {
         toast.error(
-          `Please fill all required fields. ${validationErrors.length} task(s) have errors.`
+          `Please fill all required fields`
         );
         return;
       }
@@ -209,36 +219,63 @@ function FillTimesheet() {
         return;
       }
 
-      // Save existing tasks
+      let createRes = null;
+      let updateRes = null;
+
       if (existingTasks.length > 0) {
-        await api.put("/task", { tasks: existingTasks });
+        updateRes = await api.put("/task", { tasks: existingTasks });
       }
 
-      // Save new tasks
       if (newTasks.length > 0) {
-        await api.post("/task/create", { tasks: newTasks });
+        createRes = await api.post("/task/create", { tasks: newTasks });
       }
 
-      toast.success(
-        `Timesheet saved successfully! ${existingTasks.length} updated, ${newTasks.length} created.`
-      );
+      const failedCount =
+        (updateRes?.data?.failedCount || 0) +
+        (createRes?.data?.failedCount || 0);
+      const createdCount = createRes?.data?.createdCount || 0;
+      const updatedCount = updateRes?.data?.updatedCount || 0;
 
-      // Refresh data after save
-      const response = await api.get(
-        `/task/employee?from=${dateRange.from}&to=${dateRange.to}`
-      );
-      const normalized = response.data.data?.map((task) => ({
-        id: task._id,
-        project: task.projectId?._id || task.projectId,
-        ...task,
-      }));
-      setRowData(normalized);
+      if (failedCount > 0) {
+        toast.warning(
+          `Saved ${
+            createdCount + updatedCount
+          } tasks, but ${failedCount} failed. Please check inputs.`
+        );
+        // DO NOT refetch here so user can fix the errors
+      } else {
+        toast.success(
+          `Timesheet saved successfully`
+        );
+
+        // ONLY refresh data if everything was perfect
+        const response = await api.get(
+          `/task/employee?fromDate=${dateRange.from}&toDate=${dateRange.to}`
+        );
+        // ... existing normalization logic ...
+        const normalized = response.data.data?.map((task) => ({
+          // ... existing mapping ...
+          id: task._id,
+          taskDate: task.taskDate
+            ? formatDateLocal(task.taskDate)
+            : null,
+          project: task.projectId?._id,
+          projectCategory: task.projectCategory,
+          projectStage: task.projectStage,
+          taskDescription: task.taskDescription,
+          plannedDuration: task.plannedDuration,
+          actualDuration: task.actualDuration || 0,
+          status: task.status,
+        }));
+        console.log("normalized - ", normalized)
+        setRowData(normalized || []);
+      }
     } catch (err) {
       console.error(err);
       const errorMsg =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.[0]?.error ||
-        "Save failed";
+      err?.response?.data?.message ||
+      err?.response?.data?.errors?.[0]?.error ||
+      "Save failed";
       toast.error(errorMsg);
     }
   };

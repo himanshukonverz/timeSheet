@@ -1,53 +1,43 @@
 import React from "react";
-import LeavesPerEmployeeChart from "./charts/LeavesPerEmployeeChart";
 import PlannedActualTimeChart from "./charts/PlannedActualTimeChart";
 import ProjectsTimeEffortChart from "./charts/ProjectsTimeEffortChart";
 import ProjectTimeEffortPieChart from "./charts/ProjectTimeEffortPieChart";
 import AverageWorkingHours from "./charts/AverageWorkingHours";
 
-function AdminDashboard() {
-  // Dummy data for Leaves per Employee
-  const employeeNames = [
-    "John Doe",
-    "Jane Smith",
-    "Mike Johnson",
-    "Sarah Williams",
-    "David Brown",
-  ];
-  const leavesData = [5, 8, 3, 6, 4];
+function AdminDashboard({ analytics }) {
+  const {
+    avgWorkingHours,
+    plannedVsActual,
+    projectEfforts,
+    projectPercentages,
+  } = analytics;
 
-  // Dummy data for Planned vs Actual Time
-  const plannedTime = [40, 35, 45, 30, 38];
-  const actualTime = [42, 33, 48, 28, 40];
+  const employeeNames = avgWorkingHours?.map(e => e.name);
+  const averageWorkingHours = avgWorkingHours?.map(e => e.avgHours);
 
-  // Dummy data for Projects Time Effort
-  const projectNames = [
-    "Project Alpha",
-    "Project Beta",
-    "Project Gamma",
-    "Project Delta",
-    "Project Echo",
-  ];
-  const projectTimeData = [120, 95, 80, 65, 50];
+  const plannedTime = plannedVsActual?.map(e => e.plannedHours);
+  const actualTime = plannedVsActual?.map(e => e.actualHours);
 
-  // Dummy data for Average Working Hours
-  const averageWorkingHours = [7.5, 8.2, 6.8, 7.9, 8.0];
+  const projectNames = projectEfforts?.map(p => p.projectName);
+  const projectTimeData = projectEfforts?.map(p => p.hours);
 
   return (
-    <div className="p-6">
-      {/* First Row: Leaves per Employee and Planned vs Actual Time */}
+    <div>
+      {/* Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <LeavesPerEmployeeChart
-          employeeNames={employeeNames}
-          leavesData={leavesData}
-        />
         <AverageWorkingHours
           employeeNames={employeeNames}
           averageHours={averageWorkingHours}
         />
+
+        <PlannedActualTimeChart
+          employeeNames={employeeNames}
+          plannedTime={plannedTime}
+          actualTime={actualTime}
+        />
       </div>
 
-      {/* Second Row: Projects Time Effort Bar Chart and Pie Chart */}
+      {/* Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ProjectsTimeEffortChart
           projectNames={projectNames}
@@ -56,15 +46,6 @@ function AdminDashboard() {
         <ProjectTimeEffortPieChart
           projectNames={projectNames}
           timeData={projectTimeData}
-        />
-      </div>
-
-      {/* Third Row: Average Working Hours */}
-      <div className="my-6">
-        <PlannedActualTimeChart
-          employeeNames={employeeNames}
-          plannedTime={plannedTime}
-          actualTime={actualTime}
         />
       </div>
     </div>

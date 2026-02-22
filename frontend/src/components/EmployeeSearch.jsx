@@ -62,7 +62,7 @@ function EmployeeSearch({ onSelect, selectedEmployee }) {
               className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
               onClick={() => {
                 onSelect(user);
-                setQuery(user.name); // Handled by useEffect now
+                setQuery(""); // Handled by useEffect now
                 setShowDropdown(false);
               }}
             >

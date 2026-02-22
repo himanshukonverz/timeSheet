@@ -1,16 +1,42 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import api from "@/api/axios";
 
-export const AuthContext = createContext({
-  user: null,
-  loading : true
-});
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [authState, setAuthState] = useState({
+    user: null,
+    loading: true,
+  });
+
+  const fetchUser = async () => {
+    try {
+      const res = await api.get("/auth/me");
+
+      setAuthState({
+        user: res.data?.user || null,
+        loading: false,
+      });
+    } catch {
+      setAuthState({
+        user: null,
+        loading: false,
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchUser(); // run once on app load
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, setLoading }}>
+    <AuthContext.Provider
+      value={{
+        user: authState.user,
+        loading: authState.loading,
+        refreshUser: fetchUser, // 👈 expose this
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
