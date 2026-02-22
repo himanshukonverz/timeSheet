@@ -4,7 +4,7 @@ import api from "../api/axios";
 import { toast } from "sonner";
 
 function AddEmployee() {
-  const [managers, setManagers] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -31,18 +31,18 @@ function AddEmployee() {
 
   // Fetch managers/employees for reportsTo dropdown
   useEffect(() => {
-    const fetchManagers = async () => {
+    const fetchAdmins = async () => {
       try {
         // TODO: Replace with actual API endpoint
         const response = await api.get("/user/admin-manager");
         console.log("response - ", response.data);
-        setManagers(response.data.users);
+        setAdmins(response.data.users);
       } catch (error) {
         console.error("Error fetching managers:", error);
       }
     };
 
-    fetchManagers();
+    fetchAdmins();
   }, []);
 
   // Automatically set reportsTo to admin when role is manager
@@ -57,7 +57,7 @@ function AddEmployee() {
       // Clear reportsTo when role is employee (user can select manually)
       setValue("reportsTo", "");
     }
-  }, [selectedRole, managers, setValue]);
+  }, [selectedRole, admins, setValue]);
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -275,7 +275,7 @@ function AddEmployee() {
                   style={{ padding: "0.5rem 1rem" }}
                 >
                   <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
+                  {/* <option value="manager">Manager</option> */}
                 </select>
                 {errors.role && (
                   <p className="form-error-text">{errors.role.message}</p>
@@ -291,10 +291,10 @@ function AddEmployee() {
                     className="form-input"
                     style={{ padding: "0.5rem 1rem" }}
                   >
-                    <option value="">Select Manager/Admin</option>
-                    {managers.map((manager) => (
-                      <option key={manager.empId} value={manager.empId}>
-                        {manager.name} ({manager.empId}) - {manager.role}
+                    <option value="">Select Admin</option>
+                    {admins.map((admin) => (
+                      <option key={admin.empId} value={admin.empId}>
+                        {admin.name} ({admin.empId}) - {admin.role}
                       </option>
                     ))}
                   </select>

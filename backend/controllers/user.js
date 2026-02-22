@@ -56,7 +56,8 @@ export const createUser = asyncHandler(async (req, res) => {
 
 export const fetchManagersAndAdmin = asyncHandler(async (req, res) => {
   const users = await User.find({
-    role: { $in: ["admin", "manager"] },
+    role: { $in: ["admin"] },
+    email : {$nin : ["support@kognozconsulting.com"]}
   })
     .select("empId name role -_id") // optional: send only needed fields
     .sort({ name: 1 });

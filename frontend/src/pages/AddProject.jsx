@@ -12,17 +12,17 @@ function AddProject() {
   const { register, handleSubmit, control, formState: { errors }, reset, watch } = useForm({
     defaultValues: {
       projectName: "",
-      status: "upcoming",
-      startDate: "",
-      goLiveDate: "",
-      contributors: [
-        {
-          email: "",
-          projectRole: "",
-          projectModules: "",
-          hasEditAccess: "false",
-        },
-      ],
+      // status: "upcoming",
+      // startDate: "",
+      // goLiveDate: "",
+      // contributors: [
+      //   {
+      //     email: "",
+      //     projectRole: "",
+      //     projectModules: "",
+      //     hasEditAccess: "false",
+      //   },
+      // ],
     },
   });
 
@@ -98,7 +98,7 @@ function AddProject() {
               </div>
 
               {/* Status */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Project Status <span className="text-red-500">*</span>
                 </label>
@@ -110,7 +110,7 @@ function AddProject() {
                   <option value="in-progress">In Progress</option>
                   <option value="completed">Completed</option>
                 </select>
-              </div>
+              </div> */}
             </div>
 
             {!isUpcoming && (
@@ -148,14 +148,14 @@ function AddProject() {
 
           {/* Contributors */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            {/* <h2 className="text-lg font-semibold text-gray-800 mb-4">
               Contributor Details
-            </h2>
+            </h2> */}
 
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4 items-end">
                 {/* Email */}
-                <div className="w-full">
+                {/* <div className="w-full">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Contributor Email
                   </label>
@@ -165,10 +165,10 @@ function AddProject() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-md"
                     placeholder="name@kognozconsulting.com"
                   />
-                </div>
+                </div> */}
 
                 {/* Role */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Project Role
                   </label>
@@ -186,10 +186,10 @@ function AddProject() {
                     <option value="Project Director">Project Director</option>
                     <option value="Others">Others</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Modules */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Project Modules
                   </label>
@@ -199,11 +199,11 @@ function AddProject() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-md"
                     placeholder="All, Core, RnO, L&A, etc."
                   />
-                </div>
+                </div> */}
 
                 {/* Has Edit Access */}
                 <div className="flex items-center gap-2">
-                  <div className="flex-1">
+                  {/* <div className="flex-1">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Has Edit Access
                     </label>
@@ -214,10 +214,10 @@ function AddProject() {
                       <option value="false">No</option>
                       <option value="true">Yes</option>
                     </select>
-                  </div>
+                  </div> */}
 
                   {/* Remove button */}
-                  {fields.length > 1 && (
+                  {/* {fields.length > 1 && (
                     <button
                       type="button"
                       onClick={() => remove(index)}
@@ -225,13 +225,13 @@ function AddProject() {
                     >
                       <CircleX />
                     </button>
-                  )}
+                  )} */}
                 </div>
               </div>
             ))}
 
             {/* Add Contributor Button */}
-            <div className="flex justify-end">
+            {/* <div className="flex justify-end">
               <button
                 type="button"
                 onClick={() =>
@@ -246,7 +246,7 @@ function AddProject() {
               >
                 Add Contributor
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Actions */}
